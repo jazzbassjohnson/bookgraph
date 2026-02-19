@@ -70,7 +70,7 @@ Find meaningful connections. Use strength 0-1 (1=strongest). Include cross-book 
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         messages: [{ role: 'user', content: prompt }],
       }),
@@ -107,7 +107,7 @@ Find meaningful connections. Use strength 0-1 (1=strongest). Include cross-book 
           ai_tags: bookAnalysis.tags || [],
           ai_summary: bookAnalysis.summary || null,
           raw_response: bookAnalysis,
-          model_used: 'claude-sonnet-4-20250514',
+          model_used: 'claude-sonnet-4-6',
           analyzed_at: new Date().toISOString(),
         }, { onConflict: 'book_id' });
       }

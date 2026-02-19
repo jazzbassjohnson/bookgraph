@@ -60,7 +60,7 @@ Each suggestion should relate to specific books in the library. Include 1-3 rela
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 2048,
         messages: [{ role: 'user', content: prompt }],
       }),

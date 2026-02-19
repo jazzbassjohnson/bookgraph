@@ -188,21 +188,16 @@ export async function analyzeBook(bookId: string): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  const response = await fetch(`${supabaseUrl}/functions/v1/analyze-book`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
-      'apikey': anonKey,
-    },
-    body: JSON.stringify({ bookId }),
+  const { data, error } = await supabase.functions.invoke('analyze-book', {
+    body: { bookId },
   });
 
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body.error || `Edge function error: ${response.status}`);
+  if (error) {
+    // data may contain the edge function's JSON error body
+    const detail = typeof data === 'object' && data?.error
+      ? data.error
+      : error.message;
+    throw new Error(detail);
   }
 }
 
