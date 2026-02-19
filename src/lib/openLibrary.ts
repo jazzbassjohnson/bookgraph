@@ -42,6 +42,6 @@ export async function searchBooks(query: string): Promise<OpenLibraryResult[]> {
     coverUrl: doc.cover_i
       ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-S.jpg`
       : undefined,
-    subjects: doc.subject?.slice(0, 5) ?? [],
+    subjects: doc.subject?.slice(0, 8) ?? [],
   }));
 }

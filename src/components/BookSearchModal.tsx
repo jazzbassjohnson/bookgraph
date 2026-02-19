@@ -51,7 +51,7 @@ export function BookSearchModal({ onAdd, onManualAdd, onClose }: BookSearchModal
       title: result.title,
       authors: result.authors,
       year: result.year,
-      topics: [],
+      topics: result.subjects,
       themes: [],
       tags: [],
     };
