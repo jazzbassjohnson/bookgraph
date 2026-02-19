@@ -188,11 +188,15 @@ export async function analyzeBook(bookId: string): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
-  const { error } = await supabase.functions.invoke('analyze-book', {
+  const { data, error } = await supabase.functions.invoke('analyze-book', {
     body: { bookId },
   });
 
-  if (error) throw error;
+  if (error) {
+    // Extract the actual error message from the edge function response
+    const detail = data?.error || error.message;
+    throw new Error(detail);
+  }
 }
 
 export async function analyzeLibrary(): Promise<void> {
