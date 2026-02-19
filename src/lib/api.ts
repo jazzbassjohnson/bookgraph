@@ -189,11 +189,13 @@ export async function analyzeBook(bookId: string): Promise<void> {
   if (!session) throw new Error('Not authenticated');
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   const response = await fetch(`${supabaseUrl}/functions/v1/analyze-book`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${session.access_token}`,
+      'apikey': anonKey,
     },
     body: JSON.stringify({ bookId }),
   });
