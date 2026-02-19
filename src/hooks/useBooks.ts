@@ -38,6 +38,8 @@ export function useBooks() {
     setAnalyzingBookIds((prev) => new Set(prev).add(newBook.id));
     analyzeBook(newBook.id)
       .then(() => refresh())
+      .then(() => backfillFromAnalysis(newBook.id))
+      .then(() => refresh())
       .catch((err) => {
         console.error('Analysis failed:', err);
         alert(`Analysis failed: ${err instanceof Error ? err.message : err}`);
@@ -64,10 +66,37 @@ export function useBooks() {
     setBooks((prev) => prev.filter((b) => b.id !== id));
   }, []);
 
+  // After analysis, copy AI results into empty book fields
+  const backfillFromAnalysis = useCallback(async (bookId: string) => {
+    const book = books.find((b) => b.id === bookId);
+    if (!book?.analysis) {
+      // Re-fetch to get latest analysis data
+      const freshBooks = await fetchBooksWithAnalyses();
+      setBooks(freshBooks);
+      const freshBook = freshBooks.find((b) => b.id === bookId);
+      if (!freshBook?.analysis) return;
+      return backfillFields(freshBook);
+    }
+    return backfillFields(book);
+
+    async function backfillFields(b: BookWithAnalysis) {
+      const a = b.analysis!;
+      const updates: Partial<Book> = {};
+      if (b.themes.length === 0 && a.ai_themes.length > 0) updates.themes = a.ai_themes;
+      if (b.tags.length === 0 && a.ai_tags.length > 0) updates.tags = a.ai_tags;
+      if (!b.notes && a.ai_summary) updates.notes = a.ai_summary;
+      if (Object.keys(updates).length > 0) {
+        await updateBook(bookId, updates);
+      }
+    }
+  }, [books]);
+
   const reanalyzeBook = useCallback(async (bookId: string) => {
     setAnalyzingBookIds((prev) => new Set(prev).add(bookId));
     try {
       await analyzeBook(bookId);
+      await refresh();
+      await backfillFromAnalysis(bookId);
       await refresh();
     } catch (err) {
       console.error('Re-analysis failed:', err);
@@ -79,7 +108,7 @@ export function useBooks() {
         return next;
       });
     }
-  }, [refresh]);
+  }, [refresh, backfillFromAnalysis]);
 
   const bulkImport = useCallback(async (booksData: Omit<Book, 'id' | 'user_id' | 'created_at' | 'updated_at'>[]) => {
     if (!user) throw new Error('Not authenticated');

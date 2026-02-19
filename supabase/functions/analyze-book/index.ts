@@ -1,4 +1,3 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 import { getUser } from '../_shared/auth.ts';
 
@@ -126,27 +125,6 @@ For connections, only reference books from the user's library listed above. Use 
       }, { onConflict: 'book_id' });
 
     if (analysisError) throw analysisError;
-
-    // Update book fields with AI-generated data using service role to bypass RLS
-    const adminClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    );
-    const bookUpdates: Record<string, unknown> = {
-      topics: parsed.topics || [],
-      themes: parsed.themes || [],
-      tags: parsed.tags || [],
-    };
-    if (!targetBook.notes && parsed.summary) {
-      bookUpdates.notes = parsed.summary;
-    }
-    const { error: updateError } = await adminClient
-      .from('books')
-      .update(bookUpdates)
-      .eq('id', bookId);
-    if (updateError) {
-      console.error('Book backfill failed:', updateError);
-    }
 
     // Delete existing connections for this book then insert new ones
     await supabase
