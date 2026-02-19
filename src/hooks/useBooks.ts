@@ -38,7 +38,10 @@ export function useBooks() {
     setAnalyzingBookIds((prev) => new Set(prev).add(newBook.id));
     analyzeBook(newBook.id)
       .then(() => refresh())
-      .catch((err) => console.error('Analysis failed:', err))
+      .catch((err) => {
+        console.error('Analysis failed:', err);
+        alert(`Analysis failed: ${err instanceof Error ? err.message : err}`);
+      })
       .finally(() => {
         setAnalyzingBookIds((prev) => {
           const next = new Set(prev);
@@ -68,6 +71,7 @@ export function useBooks() {
       await refresh();
     } catch (err) {
       console.error('Re-analysis failed:', err);
+      alert(`Re-analysis failed: ${err instanceof Error ? err.message : err}`);
     } finally {
       setAnalyzingBookIds((prev) => {
         const next = new Set(prev);
