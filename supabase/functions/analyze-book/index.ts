@@ -126,6 +126,24 @@ For connections, only reference books from the user's library listed above. Use 
 
     if (analysisError) throw analysisError;
 
+    // Backfill empty book fields with AI-generated data
+    const bookUpdates: Record<string, unknown> = {};
+    if (!targetBook.topics || targetBook.topics.length === 0) {
+      bookUpdates.topics = parsed.topics || [];
+    }
+    if (!targetBook.themes || targetBook.themes.length === 0) {
+      bookUpdates.themes = parsed.themes || [];
+    }
+    if (!targetBook.tags || targetBook.tags.length === 0) {
+      bookUpdates.tags = parsed.tags || [];
+    }
+    if (!targetBook.notes && parsed.summary) {
+      bookUpdates.notes = parsed.summary;
+    }
+    if (Object.keys(bookUpdates).length > 0) {
+      await supabase.from('books').update(bookUpdates).eq('id', bookId);
+    }
+
     // Delete existing connections for this book then insert new ones
     await supabase
       .from('book_connections')
