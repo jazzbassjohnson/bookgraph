@@ -4,7 +4,7 @@ import { parseBulkInput } from '../bulkParser';
 import { Modal } from './Modal';
 
 interface BulkImportModalProps {
-  onImport: (books: Book[]) => void;
+  onImport: (books: Omit<Book, 'user_id'>[]) => void;
   onClose: () => void;
 }
 
@@ -22,7 +22,7 @@ export function BulkImportModal({ onImport, onClose }: BulkImportModalProps) {
       }
       onImport(books);
       onClose();
-    } catch (err) {
+    } catch {
       setError('Failed to parse input');
     }
   };

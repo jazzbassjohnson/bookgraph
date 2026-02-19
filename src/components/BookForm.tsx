@@ -38,6 +38,7 @@ export function BookForm({ book, onSave, onCancel }: BookFormProps) {
 
     const newBook: Book = {
       id: book?.id || uuidv4(),
+      user_id: book?.user_id || '',
       title: title.trim(),
       authors: parseCommaSeparated(authors),
       topics: parseCommaSeparated(topics),
@@ -94,7 +95,7 @@ export function BookForm({ book, onSave, onCancel }: BookFormProps) {
           onChange={(e) => setTopics(e.target.value)}
           placeholder="Technology, Science, History"
         />
-        <p className="form-hint">Separate with commas</p>
+        <p className="form-hint">Leave blank — AI will auto-generate</p>
       </div>
 
       <div className="form-group">
@@ -106,7 +107,7 @@ export function BookForm({ book, onSave, onCancel }: BookFormProps) {
           onChange={(e) => setThemes(e.target.value)}
           placeholder="Freedom, Identity, Love"
         />
-        <p className="form-hint">Separate with commas</p>
+        <p className="form-hint">Leave blank — AI will auto-generate</p>
       </div>
 
       <div className="form-group">
@@ -118,7 +119,7 @@ export function BookForm({ book, onSave, onCancel }: BookFormProps) {
           onChange={(e) => setTags(e.target.value)}
           placeholder="sci-fi, classic, must-read"
         />
-        <p className="form-hint">Separate with commas</p>
+        <p className="form-hint">Leave blank — AI will auto-generate</p>
       </div>
 
       <div className="form-row">

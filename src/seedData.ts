@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { Book } from './types';
 
-export function generateSeedData(): Book[] {
+export function generateSeedData(): Omit<Book, 'user_id'>[] {
   return [
     {
       id: uuidv4(),

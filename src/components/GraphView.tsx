@@ -1,17 +1,19 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
-import type { Book, GraphNode, EdgeToggles } from '../types';
+import type { BookWithAnalysis, BookConnection, BookSuggestion, GraphNode, GraphLink, EdgeToggles } from '../types';
 import { buildGraphData } from '../graphBuilder';
 import { SidePanel } from './SidePanel';
 
 interface GraphViewProps {
-  books: Book[];
+  books: BookWithAnalysis[];
+  connections: BookConnection[];
+  suggestions: BookSuggestion[];
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type GraphRef = any;
 
-export function GraphView({ books }: GraphViewProps) {
+export function GraphView({ books, connections, suggestions }: GraphViewProps) {
   const graphRef = useRef<GraphRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -21,8 +23,10 @@ export function GraphView({ books }: GraphViewProps) {
     topic: true,
     theme: true,
     tag: true,
+    ai_connection: true,
   });
   const [threshold, setThreshold] = useState(1);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [highlightedNodeId, setHighlightedNodeId] = useState<string | null>(null);
@@ -50,8 +54,8 @@ export function GraphView({ books }: GraphViewProps) {
   }, [dimensions.width, selectedNode]);
 
   const graphData = useMemo(() => {
-    return buildGraphData(books, edgeToggles, threshold);
-  }, [books, edgeToggles, threshold]);
+    return buildGraphData(books, edgeToggles, threshold, connections, suggestions, showSuggestions);
+  }, [books, edgeToggles, threshold, connections, suggestions, showSuggestions]);
 
   const handleToggle = (type: keyof EdgeToggles) => {
     setEdgeToggles((prev) => ({
@@ -111,14 +115,26 @@ export function GraphView({ books }: GraphViewProps) {
       const fontSize = node.type === 'book' ? 12 / globalScale : 10 / globalScale;
       ctx.font = `${fontSize}px Sans-Serif`;
       const textWidth = ctx.measureText(label).width;
-      const nodeSize = node.type === 'book' ? 8 : 6;
+      const nodeSize = node.type === 'book' ? 8 : node.type === 'suggestion' ? 6 : 6;
       const isHighlighted = node.id === highlightedNodeId;
+      const opacity = node.opacity ?? 1;
+
+      ctx.globalAlpha = opacity;
 
       // Draw node circle
       ctx.beginPath();
       ctx.arc(node.x!, node.y!, nodeSize, 0, 2 * Math.PI, false);
       ctx.fillStyle = node.color || '#999';
       ctx.fill();
+
+      // Draw dashed outline for suggestion nodes
+      if (node.type === 'suggestion') {
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
 
       // Draw highlight ring
       if (isHighlighted) {
@@ -144,12 +160,14 @@ export function GraphView({ books }: GraphViewProps) {
       ctx.textBaseline = 'top';
       ctx.fillStyle = isHighlighted ? '#fff' : '#94a3b8';
       ctx.fillText(label, node.x!, node.y! + nodeSize + 4);
+
+      ctx.globalAlpha = 1;
     },
     [highlightedNodeId]
   );
 
   const linkColor = useCallback(
-    (link: { type: string }) => {
+    (link: GraphLink) => {
       switch (link.type) {
         case 'author':
           return 'rgba(245, 158, 11, 0.3)';
@@ -159,9 +177,21 @@ export function GraphView({ books }: GraphViewProps) {
           return 'rgba(236, 72, 153, 0.3)';
         case 'tag':
           return 'rgba(139, 92, 246, 0.3)';
+        case 'ai_connection':
+          return 'rgba(6, 182, 212, 0.4)';
         default:
           return 'rgba(255, 255, 255, 0.1)';
       }
+    },
+    []
+  );
+
+  const linkWidth = useCallback(
+    (link: GraphLink) => {
+      if (link.type === 'ai_connection' && link.strength) {
+        return 1 + link.strength * 3;
+      }
+      return 1;
     },
     []
   );
@@ -192,7 +222,7 @@ export function GraphView({ books }: GraphViewProps) {
             node.fy = node.y;
           }}
           linkColor={linkColor}
-          linkWidth={1}
+          linkWidth={linkWidth}
           linkDirectionalParticles={0}
           backgroundColor="#0f172a"
           enableZoomInteraction={true}
@@ -254,7 +284,28 @@ export function GraphView({ books }: GraphViewProps) {
               ></span>
               Tags
             </label>
+            <label className="toggle-item">
+              <input
+                type="checkbox"
+                checked={edgeToggles.ai_connection}
+                onChange={() => handleToggle('ai_connection')}
+              />
+              <span
+                className="color-dot"
+                style={{ background: '#06b6d4' }}
+              ></span>
+              AI Connections
+            </label>
           </div>
+
+          <label className="toggle-item" style={{ marginBottom: '1rem' }}>
+            <input
+              type="checkbox"
+              checked={showSuggestions}
+              onChange={() => setShowSuggestions(!showSuggestions)}
+            />
+            Show Suggestions
+          </label>
 
           <div className="threshold-control">
             <label>
@@ -317,6 +368,13 @@ export function GraphView({ books }: GraphViewProps) {
               ></span>
               Tag
             </div>
+            <div className="legend-item">
+              <span
+                className="color-dot"
+                style={{ background: '#06b6d4', width: 8, height: 8 }}
+              ></span>
+              AI Connection
+            </div>
           </div>
         </div>
       </div>
@@ -325,6 +383,8 @@ export function GraphView({ books }: GraphViewProps) {
         <SidePanel
           node={selectedNode}
           books={books}
+          connections={connections}
+          suggestions={suggestions}
           onClose={() => {
             setSelectedNode(null);
             setHighlightedNodeId(null);

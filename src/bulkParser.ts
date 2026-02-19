@@ -1,6 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import type { Book } from './types';
 
+type ParsedBook = Omit<Book, 'user_id'>;
+
 /**
  * Parse bulk text input into books.
  * Supports formats:
@@ -8,15 +10,15 @@ import type { Book } from './types';
  * 2. "Title - Author" (one per line)
  * 3. "Title | Author | Topics | Themes | Tags" (pipe-separated)
  */
-export function parseBulkInput(text: string): Book[] {
+export function parseBulkInput(text: string): ParsedBook[] {
   const lines = text.split('\n').filter((line) => line.trim());
-  const books: Book[] = [];
+  const books: ParsedBook[] = [];
 
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
-    let book: Book | null = null;
+    let book: ParsedBook | null = null;
 
     // Try pipe-separated format first (more specific)
     if (trimmed.includes('|')) {
@@ -50,7 +52,7 @@ export function parseBulkInput(text: string): Book[] {
   return books;
 }
 
-function parseByFormat(line: string): Book {
+function parseByFormat(line: string): ParsedBook {
   const match = line.match(/^(.+?)\s+by\s+(.+)$/i);
   if (match) {
     return {
@@ -72,7 +74,7 @@ function parseByFormat(line: string): Book {
   };
 }
 
-function parseDashFormat(line: string): Book {
+function parseDashFormat(line: string): ParsedBook {
   const parts = line.split(' - ');
   return {
     id: uuidv4(),
@@ -84,7 +86,7 @@ function parseDashFormat(line: string): Book {
   };
 }
 
-function parsePipeSeparated(line: string): Book {
+function parsePipeSeparated(line: string): ParsedBook {
   const parts = line.split('|').map((p) => p.trim());
   return {
     id: uuidv4(),
