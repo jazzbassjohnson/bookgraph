@@ -188,23 +188,19 @@ export async function analyzeBook(bookId: string): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
-  const { error } = await supabase.functions.invoke('analyze-book', {
-    body: { bookId },
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const response = await fetch(`${supabaseUrl}/functions/v1/analyze-book`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ bookId }),
   });
 
-  if (error) {
-    // Extract the actual error message from the edge function response
-    let detail = error.message;
-    try {
-      const context = (error as unknown as { context: Response }).context;
-      if (context) {
-        const body = await context.json();
-        detail = body.error || detail;
-      }
-    } catch {
-      // Fall back to generic message
-    }
-    throw new Error(detail);
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || `Edge function error: ${response.status}`);
   }
 }
 
