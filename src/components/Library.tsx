@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import type { Book, BookWithAnalysis } from '../types';
 import { BookCard } from './BookCard';
 import { BookForm } from './BookForm';
+import { BookSearchModal } from './BookSearchModal';
 import { Modal } from './Modal';
 import { BulkImportModal } from './BulkImportModal';
 
@@ -27,7 +28,8 @@ export function Library({
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBy, setFilterBy] = useState<string>('all');
   const [filterValue, setFilterValue] = useState<string>('');
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showManualAdd, setShowManualAdd] = useState(false);
   const [editingBook, setEditingBook] = useState<BookWithAnalysis | null>(null);
   const [showBulkImport, setShowBulkImport] = useState(false);
 
@@ -111,8 +113,13 @@ export function Library({
       setEditingBook(null);
     } else {
       onAddBook(book);
-      setShowAddModal(false);
+      setShowManualAdd(false);
     }
+  };
+
+  const handleSearchAdd = (book: Book) => {
+    onAddBook(book);
+    setShowSearchModal(false);
   };
 
   const handleDelete = (id: string) => {
@@ -185,7 +192,7 @@ export function Library({
         </button>
         <button
           className="btn btn-primary"
-          onClick={() => setShowAddModal(true)}
+          onClick={() => setShowSearchModal(true)}
         >
           Add Book
         </button>
@@ -215,11 +222,22 @@ export function Library({
         </div>
       )}
 
-      {showAddModal && (
-        <Modal title="Add New Book" onClose={() => setShowAddModal(false)}>
+      {showSearchModal && (
+        <BookSearchModal
+          onAdd={handleSearchAdd}
+          onManualAdd={() => {
+            setShowSearchModal(false);
+            setShowManualAdd(true);
+          }}
+          onClose={() => setShowSearchModal(false)}
+        />
+      )}
+
+      {showManualAdd && (
+        <Modal title="Add New Book" onClose={() => setShowManualAdd(false)}>
           <BookForm
             onSave={handleSave}
-            onCancel={() => setShowAddModal(false)}
+            onCancel={() => setShowManualAdd(false)}
           />
         </Modal>
       )}

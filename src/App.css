@@ -850,6 +850,121 @@ body {
   border-radius: 3px;
 }
 
+/* Book Search Modal */
+.book-search-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.book-search-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.book-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 100px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.book-search-loading {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 0;
+}
+
+.book-search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+  transition: background 0.2s;
+}
+
+.book-search-result-item:hover {
+  background: var(--border-color);
+}
+
+.book-cover-thumb {
+  width: 40px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 3px;
+  flex-shrink: 0;
+  background: var(--bg-primary);
+}
+
+.book-cover-placeholder {
+  border: 1px dashed var(--border-color);
+}
+
+.book-search-result-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.book-search-result-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.book-search-result-author {
+  font-size: 0.75rem;
+  color: var(--author-color);
+}
+
+.book-search-result-year {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.no-results {
+  text-align: center;
+  padding: 2rem 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.no-results p {
+  margin: 0;
+}
+
+.book-search-footer {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.book-search-manual-link {
+  background: none;
+  border: none;
+  color: var(--accent-primary);
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 0;
+}
+
+.book-search-manual-link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
 /* Empty State */
 .empty-state {
   text-align: center;
