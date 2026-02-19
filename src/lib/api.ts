@@ -188,13 +188,22 @@ export async function analyzeBook(bookId: string): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase.functions.invoke('analyze-book', {
+  const { error } = await supabase.functions.invoke('analyze-book', {
     body: { bookId },
   });
 
   if (error) {
     // Extract the actual error message from the edge function response
-    const detail = data?.error || error.message;
+    let detail = error.message;
+    try {
+      const context = (error as unknown as { context: Response }).context;
+      if (context) {
+        const body = await context.json();
+        detail = body.error || detail;
+      }
+    } catch {
+      // Fall back to generic message
+    }
     throw new Error(detail);
   }
 }
