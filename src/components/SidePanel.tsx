@@ -1,16 +1,15 @@
-import type { BookWithAnalysis, BookConnection, BookSuggestion, GraphNode } from '../types';
+import type { Book, BookSuggestion, GraphNode } from '../types';
 import { findRelatedBooks, getConnectedBooks } from '../graphBuilder';
 
 interface SidePanelProps {
   node: GraphNode;
-  books: BookWithAnalysis[];
-  connections: BookConnection[];
+  books: Book[];
   suggestions: BookSuggestion[];
   onClose: () => void;
   onNodeClick: (nodeId: string) => void;
 }
 
-export function SidePanel({ node, books, connections, suggestions, onClose, onNodeClick }: SidePanelProps) {
+export function SidePanel({ node, books, suggestions, onClose, onNodeClick }: SidePanelProps) {
   const isBookNode = node.type === 'book';
   const isSuggestionNode = node.type === 'suggestion';
 
@@ -27,11 +26,6 @@ export function SidePanel({ node, books, connections, suggestions, onClose, onNo
     : [];
 
   const relatedBooks = book ? findRelatedBooks(book, books) : [];
-
-  // AI connections for this book
-  const aiConnections = book
-    ? connections.filter((c) => c.book_a_id === book.id || c.book_b_id === book.id)
-    : [];
 
   const renderStars = (rating: number) => {
     return '★'.repeat(rating) + '☆'.repeat(5 - rating);
@@ -114,13 +108,6 @@ export function SidePanel({ node, books, connections, suggestions, onClose, onNo
             </div>
           )}
 
-          {book.analysis?.ai_summary && (
-            <div className="side-panel-section">
-              <h3>AI Summary</h3>
-              <p className="ai-summary-text">{book.analysis.ai_summary}</p>
-            </div>
-          )}
-
           <div className="side-panel-section">
             <h3>Details</h3>
             <div className="book-meta">
@@ -132,7 +119,7 @@ export function SidePanel({ node, books, connections, suggestions, onClose, onNo
             </div>
           </div>
 
-          {(book.topics.length > 0 || (book.analysis?.ai_topics || []).length > 0) && (
+          {book.topics.length > 0 && (
             <div className="side-panel-section">
               <h3>Topics</h3>
               <div className="attribute-list">
@@ -145,22 +132,11 @@ export function SidePanel({ node, books, connections, suggestions, onClose, onNo
                     {topic}
                   </span>
                 ))}
-                {(book.analysis?.ai_topics || [])
-                  .filter((t) => !book.topics.includes(t))
-                  .map((topic) => (
-                    <span
-                      key={`ai-${topic}`}
-                      className="attribute-chip chip-topic chip-ai"
-                      onClick={() => onNodeClick(`topic:${topic}`)}
-                    >
-                      {topic}
-                    </span>
-                  ))}
               </div>
             </div>
           )}
 
-          {(book.themes.length > 0 || (book.analysis?.ai_themes || []).length > 0) && (
+          {book.themes.length > 0 && (
             <div className="side-panel-section">
               <h3>Themes</h3>
               <div className="attribute-list">
@@ -173,22 +149,11 @@ export function SidePanel({ node, books, connections, suggestions, onClose, onNo
                     {theme}
                   </span>
                 ))}
-                {(book.analysis?.ai_themes || [])
-                  .filter((t) => !book.themes.includes(t))
-                  .map((theme) => (
-                    <span
-                      key={`ai-${theme}`}
-                      className="attribute-chip chip-theme chip-ai"
-                      onClick={() => onNodeClick(`theme:${theme}`)}
-                    >
-                      {theme}
-                    </span>
-                  ))}
               </div>
             </div>
           )}
 
-          {(book.tags.length > 0 || (book.analysis?.ai_tags || []).length > 0) && (
+          {book.tags.length > 0 && (
             <div className="side-panel-section">
               <h3>Tags</h3>
               <div className="attribute-list">
@@ -201,17 +166,6 @@ export function SidePanel({ node, books, connections, suggestions, onClose, onNo
                     {tag}
                   </span>
                 ))}
-                {(book.analysis?.ai_tags || [])
-                  .filter((t) => !book.tags.includes(t))
-                  .map((tag) => (
-                    <span
-                      key={`ai-${tag}`}
-                      className="attribute-chip chip-tag chip-ai"
-                      onClick={() => onNodeClick(`tag:${tag}`)}
-                    >
-                      {tag}
-                    </span>
-                  ))}
               </div>
             </div>
           )}
@@ -222,37 +176,6 @@ export function SidePanel({ node, books, connections, suggestions, onClose, onNo
               <p style={{ fontSize: '0.875rem', lineHeight: 1.5 }}>
                 {book.notes}
               </p>
-            </div>
-          )}
-
-          {aiConnections.length > 0 && (
-            <div className="side-panel-section">
-              <h3>AI Connections ({aiConnections.length})</h3>
-              <div className="book-list">
-                {aiConnections.map((conn) => {
-                  const otherBookId = conn.book_a_id === book.id ? conn.book_b_id : conn.book_a_id;
-                  const otherBook = books.find((b) => b.id === otherBookId);
-                  if (!otherBook) return null;
-                  return (
-                    <div
-                      key={conn.id}
-                      className="book-list-item ai-connection-item"
-                      onClick={() => onNodeClick(`book:${otherBookId}`)}
-                    >
-                      <strong>{otherBook.title}</strong>
-                      <span className="connection-type-badge">
-                        {conn.connection_type}
-                      </span>
-                      <span className="connection-strength">
-                        {Math.round(conn.strength * 100)}%
-                      </span>
-                      {conn.explanation && (
-                        <p className="connection-explanation">{conn.explanation}</p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
             </div>
           )}
 

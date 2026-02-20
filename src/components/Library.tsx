@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import type { Book, BookWithAnalysis } from '../types';
+import type { Book } from '../types';
 import { BookCard } from './BookCard';
 import { BookForm } from './BookForm';
 import { BookSearchModal } from './BookSearchModal';
@@ -7,33 +7,29 @@ import { Modal } from './Modal';
 import { BulkImportModal } from './BulkImportModal';
 
 interface LibraryProps {
-  books: BookWithAnalysis[];
-  analyzingBookIds: Set<string>;
+  books: Book[];
   onAddBook: (book: Book) => void;
   onUpdateBook: (book: Book) => void;
   onDeleteBook: (id: string) => void;
   onBulkImport: (books: Omit<Book, 'user_id'>[]) => void;
-  onReanalyze: (bookId: string) => void;
 }
 
 export function Library({
   books,
-  analyzingBookIds,
   onAddBook,
   onUpdateBook,
   onDeleteBook,
   onBulkImport,
-  onReanalyze,
 }: LibraryProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBy, setFilterBy] = useState<string>('all');
   const [filterValue, setFilterValue] = useState<string>('');
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showManualAdd, setShowManualAdd] = useState(false);
-  const [editingBook, setEditingBook] = useState<BookWithAnalysis | null>(null);
+  const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [showBulkImport, setShowBulkImport] = useState(false);
 
-  // Collect all unique values for filters, including AI-generated ones
+  // Collect all unique values for filters
   const filterOptions = useMemo(() => {
     const authors = new Set<string>();
     const topics = new Set<string>();
@@ -45,12 +41,6 @@ export function Library({
       book.topics.forEach((t) => topics.add(t));
       book.themes.forEach((t) => themes.add(t));
       book.tags.forEach((t) => tags.add(t));
-      // Include AI-generated attributes in filters
-      if (book.analysis) {
-        book.analysis.ai_topics.forEach((t) => topics.add(t));
-        book.analysis.ai_themes.forEach((t) => themes.add(t));
-        book.analysis.ai_tags.forEach((t) => tags.add(t));
-      }
     });
 
     return {
@@ -65,10 +55,6 @@ export function Library({
   const filteredBooks = useMemo(() => {
     return books.filter((book) => {
       const searchLower = searchTerm.toLowerCase();
-      const aiTopics = book.analysis?.ai_topics || [];
-      const aiThemes = book.analysis?.ai_themes || [];
-      const aiTags = book.analysis?.ai_tags || [];
-      const aiSummary = book.analysis?.ai_summary || '';
 
       const matchesSearch =
         !searchTerm ||
@@ -76,11 +62,7 @@ export function Library({
         book.authors.some((a) => a.toLowerCase().includes(searchLower)) ||
         book.topics.some((t) => t.toLowerCase().includes(searchLower)) ||
         book.themes.some((t) => t.toLowerCase().includes(searchLower)) ||
-        book.tags.some((t) => t.toLowerCase().includes(searchLower)) ||
-        aiTopics.some((t) => t.toLowerCase().includes(searchLower)) ||
-        aiThemes.some((t) => t.toLowerCase().includes(searchLower)) ||
-        aiTags.some((t) => t.toLowerCase().includes(searchLower)) ||
-        aiSummary.toLowerCase().includes(searchLower);
+        book.tags.some((t) => t.toLowerCase().includes(searchLower));
 
       let matchesFilter = true;
       if (filterBy !== 'all' && filterValue) {
@@ -89,16 +71,13 @@ export function Library({
             matchesFilter = book.authors.includes(filterValue);
             break;
           case 'topic':
-            matchesFilter = book.topics.includes(filterValue) ||
-              aiTopics.includes(filterValue);
+            matchesFilter = book.topics.includes(filterValue);
             break;
           case 'theme':
-            matchesFilter = book.themes.includes(filterValue) ||
-              aiThemes.includes(filterValue);
+            matchesFilter = book.themes.includes(filterValue);
             break;
           case 'tag':
-            matchesFilter = book.tags.includes(filterValue) ||
-              aiTags.includes(filterValue);
+            matchesFilter = book.tags.includes(filterValue);
             break;
         }
       }
@@ -213,10 +192,8 @@ export function Library({
             <BookCard
               key={book.id}
               book={book}
-              isAnalyzing={analyzingBookIds.has(book.id)}
               onEdit={setEditingBook}
               onDelete={handleDelete}
-              onReanalyze={onReanalyze}
             />
           ))}
         </div>

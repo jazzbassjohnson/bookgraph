@@ -1,37 +1,16 @@
 import { supabase } from './supabase';
-import type { Book, BookAnalysis, BookConnection, BookSuggestion, BookWithAnalysis } from '../types';
-import type { DbBook, DbBookAnalysis, DbBookConnection, DbBookSuggestion } from './database.types';
+import type { Book, BookSuggestion } from '../types';
+import type { DbBook, DbBookSuggestion } from './database.types';
 
 // --- Books ---
 
-export async function fetchBooksWithAnalyses(): Promise<BookWithAnalysis[]> {
-  const { data: books, error: booksError } = await supabase
+export async function fetchBooks(): Promise<Book[]> {
+  const { data: books, error } = await supabase
     .from('books')
     .select('*')
     .order('created_at', { ascending: false });
 
-  if (booksError) throw booksError;
-
-  const { data: analyses, error: analysesError } = await supabase
-    .from('book_analyses')
-    .select('*');
-
-  if (analysesError) throw analysesError;
-
-  const analysisMap = new Map<string, BookAnalysis>();
-  for (const a of (analyses || []) as DbBookAnalysis[]) {
-    analysisMap.set(a.book_id, {
-      id: a.id,
-      book_id: a.book_id,
-      ai_topics: a.ai_topics,
-      ai_themes: a.ai_themes,
-      ai_tags: a.ai_tags,
-      ai_summary: a.ai_summary,
-      raw_response: a.raw_response,
-      model_used: a.model_used,
-      analyzed_at: a.analyzed_at,
-    });
-  }
+  if (error) throw error;
 
   return ((books || []) as DbBook[]).map((b) => ({
     id: b.id,
@@ -47,7 +26,6 @@ export async function fetchBooksWithAnalyses(): Promise<BookWithAnalysis[]> {
     notes: b.notes ?? undefined,
     created_at: b.created_at,
     updated_at: b.updated_at,
-    analysis: analysisMap.get(b.id),
   }));
 }
 
@@ -133,25 +111,6 @@ export async function deleteBook(id: string): Promise<void> {
   if (error) throw error;
 }
 
-// --- Connections ---
-
-export async function fetchConnections(): Promise<BookConnection[]> {
-  const { data, error } = await supabase
-    .from('book_connections')
-    .select('*');
-
-  if (error) throw error;
-
-  return ((data || []) as DbBookConnection[]).map((c) => ({
-    id: c.id,
-    book_a_id: c.book_a_id,
-    book_b_id: c.book_b_id,
-    connection_type: c.connection_type as BookConnection['connection_type'],
-    strength: c.strength,
-    explanation: c.explanation,
-  }));
-}
-
 // --- Suggestions ---
 
 export async function fetchSuggestions(): Promise<BookSuggestion[]> {
@@ -183,32 +142,6 @@ export async function dismissSuggestion(id: string): Promise<void> {
 }
 
 // --- Edge Functions ---
-
-export async function analyzeBook(bookId: string): Promise<void> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
-
-  const { data, error } = await supabase.functions.invoke('analyze-book', {
-    body: { bookId },
-  });
-
-  if (error) {
-    // data may contain the edge function's JSON error body
-    const detail = typeof data === 'object' && data?.error
-      ? data.error
-      : error.message;
-    throw new Error(detail);
-  }
-}
-
-export async function analyzeLibrary(): Promise<void> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
-
-  const { error } = await supabase.functions.invoke('analyze-library', {});
-
-  if (error) throw error;
-}
 
 export async function suggestBooks(): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();

@@ -1,8 +1,8 @@
-import type { BookSuggestion, BookWithAnalysis } from '../types';
+import type { Book, BookSuggestion } from '../types';
 
 interface SuggestionsPanelProps {
   suggestions: BookSuggestion[];
-  books: BookWithAnalysis[];
+  books: Book[];
   onDismiss: (id: string) => void;
   onAddToLibrary: (title: string, authors: string[]) => void;
   onClose: () => void;

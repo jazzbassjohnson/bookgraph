@@ -5,9 +5,8 @@ import { exportLibrary, importLibrary, downloadJson } from './storage';
 import { generateSeedData } from './seedData';
 import { useAuth } from './contexts/AuthContext';
 import { useBooks } from './hooks/useBooks';
-import { useConnections } from './hooks/useConnections';
 import { useSuggestions } from './hooks/useSuggestions';
-import { analyzeLibrary, suggestBooks } from './lib/api';
+import { suggestBooks } from './lib/api';
 import { Library } from './components/Library';
 import { GraphView } from './components/GraphView';
 import { AuthPage } from './components/AuthPage';
@@ -22,20 +21,16 @@ function App() {
   const {
     books,
     loading: booksLoading,
-    analyzingBookIds,
     addBook,
     editBook,
     removeBook,
-    reanalyzeBook,
     bulkImport,
     refresh: refreshBooks,
   } = useBooks();
-  const { connections, refresh: refreshConnections } = useConnections();
   const { suggestions, dismiss: dismissSuggestion, refresh: refreshSuggestions } = useSuggestions();
 
   const [view, setView] = useState<View>('library');
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [analyzingAll, setAnalyzingAll] = useState(false);
   const [suggestingBooks, setSuggestingBooks] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -152,20 +147,6 @@ function App() {
     );
   };
 
-  const handleAnalyzeAll = async () => {
-    setAnalyzingAll(true);
-    try {
-      await analyzeLibrary();
-      await refreshBooks();
-      await refreshConnections();
-    } catch (err) {
-      console.error('Library analysis failed:', err);
-      alert('Library analysis failed. Please try again.');
-    } finally {
-      setAnalyzingAll(false);
-    }
-  };
-
   const handleSuggestBooks = async () => {
     setSuggestingBooks(true);
     try {
@@ -205,13 +186,6 @@ function App() {
               </button>
               <button className="btn btn-secondary" onClick={handleExport}>
                 Export JSON
-              </button>
-              <button
-                className="btn btn-secondary"
-                onClick={handleAnalyzeAll}
-                disabled={analyzingAll || books.length === 0}
-              >
-                {analyzingAll ? 'Analyzing...' : 'Analyze Library'}
               </button>
               <button
                 className="btn btn-secondary"
@@ -261,12 +235,10 @@ function App() {
           ) : (
             <Library
               books={books}
-              analyzingBookIds={analyzingBookIds}
               onAddBook={handleAddBook}
               onUpdateBook={handleUpdateBook}
               onDeleteBook={handleDeleteBook}
               onBulkImport={handleBulkImport}
-              onReanalyze={reanalyzeBook}
             />
           )}
           {showSuggestions && (
@@ -284,7 +256,6 @@ function App() {
       {view === 'graph' && (
         <GraphView
           books={books}
-          connections={connections}
           suggestions={suggestions}
         />
       )}

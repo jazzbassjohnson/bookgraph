@@ -1,5 +1,5 @@
 import type {
-  BookWithAnalysis, BookConnection, BookSuggestion,
+  Book, BookSuggestion,
   GraphData, GraphNode, GraphLink, EdgeToggles, AttributeType,
 } from './types';
 
@@ -9,15 +9,13 @@ const COLORS: Record<string, string> = {
   topic: '#10b981',
   theme: '#ec4899',
   tag: '#8b5cf6',
-  ai_connection: '#06b6d4',
   suggestion: '#6366f1',
 };
 
 export function buildGraphData(
-  books: BookWithAnalysis[],
+  books: Book[],
   edgeToggles: EdgeToggles,
   threshold: number,
-  connections: BookConnection[] = [],
   suggestions: BookSuggestion[] = [],
   showSuggestions = false
 ): GraphData {
@@ -26,12 +24,7 @@ export function buildGraphData(
   const attributeBookCounts: Map<string, number> = new Map();
 
   // First pass: count how many books each attribute is connected to
-  // Merge user + AI attributes (deduplicated)
   for (const book of books) {
-    const allTopics = new Set([...book.topics, ...(book.analysis?.ai_topics || [])]);
-    const allThemes = new Set([...book.themes, ...(book.analysis?.ai_themes || [])]);
-    const allTags = new Set([...book.tags, ...(book.analysis?.ai_tags || [])]);
-
     if (edgeToggles.author) {
       for (const author of book.authors) {
         const id = `author:${author}`;
@@ -39,19 +32,19 @@ export function buildGraphData(
       }
     }
     if (edgeToggles.topic) {
-      for (const topic of allTopics) {
+      for (const topic of book.topics) {
         const id = `topic:${topic}`;
         attributeBookCounts.set(id, (attributeBookCounts.get(id) || 0) + 1);
       }
     }
     if (edgeToggles.theme) {
-      for (const theme of allThemes) {
+      for (const theme of book.themes) {
         const id = `theme:${theme}`;
         attributeBookCounts.set(id, (attributeBookCounts.get(id) || 0) + 1);
       }
     }
     if (edgeToggles.tag) {
-      for (const tag of allTags) {
+      for (const tag of book.tags) {
         const id = `tag:${tag}`;
         attributeBookCounts.set(id, (attributeBookCounts.get(id) || 0) + 1);
       }
@@ -69,14 +62,13 @@ export function buildGraphData(
   // Create attribute nodes
   const attributeNodesSet = new Set<string>();
 
-  function addAttributeNode(id: string, name: string, type: AttributeType, source?: 'user' | 'ai') {
+  function addAttributeNode(id: string, name: string, type: AttributeType) {
     if (!attributeNodesSet.has(id) && validAttributes.has(id)) {
       attributeNodesSet.add(id);
       nodes.push({
         id,
         name,
         type,
-        source,
         val: attributeBookCounts.get(id) || 1,
         color: COLORS[type],
       });
@@ -97,65 +89,43 @@ export function buildGraphData(
       color: COLORS.book,
     });
 
-    const allTopics = new Set([...book.topics, ...(book.analysis?.ai_topics || [])]);
-    const allThemes = new Set([...book.themes, ...(book.analysis?.ai_themes || [])]);
-    const allTags = new Set([...book.tags, ...(book.analysis?.ai_tags || [])]);
-
     if (edgeToggles.author) {
       for (const author of book.authors) {
         const attrId = `author:${author}`;
         if (validAttributes.has(attrId)) {
-          addAttributeNode(attrId, author, 'author', 'user');
+          addAttributeNode(attrId, author, 'author');
           links.push({ source: bookNodeId, target: attrId, type: 'author' });
         }
       }
     }
 
     if (edgeToggles.topic) {
-      for (const topic of allTopics) {
+      for (const topic of book.topics) {
         const attrId = `topic:${topic}`;
         if (validAttributes.has(attrId)) {
-          const source = book.topics.includes(topic) ? 'user' : 'ai';
-          addAttributeNode(attrId, topic, 'topic', source);
+          addAttributeNode(attrId, topic, 'topic');
           links.push({ source: bookNodeId, target: attrId, type: 'topic' });
         }
       }
     }
 
     if (edgeToggles.theme) {
-      for (const theme of allThemes) {
+      for (const theme of book.themes) {
         const attrId = `theme:${theme}`;
         if (validAttributes.has(attrId)) {
-          const source = book.themes.includes(theme) ? 'user' : 'ai';
-          addAttributeNode(attrId, theme, 'theme', source);
+          addAttributeNode(attrId, theme, 'theme');
           links.push({ source: bookNodeId, target: attrId, type: 'theme' });
         }
       }
     }
 
     if (edgeToggles.tag) {
-      for (const tag of allTags) {
+      for (const tag of book.tags) {
         const attrId = `tag:${tag}`;
         if (validAttributes.has(attrId)) {
-          const source = book.tags.includes(tag) ? 'user' : 'ai';
-          addAttributeNode(attrId, tag, 'tag', source);
+          addAttributeNode(attrId, tag, 'tag');
           links.push({ source: bookNodeId, target: attrId, type: 'tag' });
         }
-      }
-    }
-  }
-
-  // Add AI connection links (direct book-to-book)
-  if (edgeToggles.ai_connection) {
-    for (const conn of connections) {
-      if (bookIdSet.has(conn.book_a_id) && bookIdSet.has(conn.book_b_id)) {
-        links.push({
-          source: `book:${conn.book_a_id}`,
-          target: `book:${conn.book_b_id}`,
-          type: 'ai_connection',
-          strength: conn.strength,
-          explanation: conn.explanation ?? undefined,
-        });
       }
     }
   }
@@ -180,8 +150,7 @@ export function buildGraphData(
           links.push({
             source: suggestionNodeId,
             target: `book:${relatedId}`,
-            type: 'ai_connection',
-            strength: 0.3,
+            type: 'topic',
           });
         }
       }
@@ -191,7 +160,7 @@ export function buildGraphData(
   return { nodes, links };
 }
 
-export function findRelatedBooks(book: BookWithAnalysis, allBooks: BookWithAnalysis[]): BookWithAnalysis[] {
+export function findRelatedBooks(book: Book, allBooks: Book[]): Book[] {
   const related = new Set<string>();
 
   for (const other of allBooks) {
@@ -202,24 +171,17 @@ export function findRelatedBooks(book: BookWithAnalysis, allBooks: BookWithAnaly
       continue;
     }
 
-    // Check user + AI topics combined
-    const bookTopics = [...book.topics, ...(book.analysis?.ai_topics || [])];
-    const otherTopics = [...other.topics, ...(other.analysis?.ai_topics || [])];
-    if (bookTopics.some((t) => otherTopics.includes(t))) {
+    if (book.topics.some((t) => other.topics.includes(t))) {
       related.add(other.id);
       continue;
     }
 
-    const bookThemes = [...book.themes, ...(book.analysis?.ai_themes || [])];
-    const otherThemes = [...other.themes, ...(other.analysis?.ai_themes || [])];
-    if (bookThemes.some((t) => otherThemes.includes(t))) {
+    if (book.themes.some((t) => other.themes.includes(t))) {
       related.add(other.id);
       continue;
     }
 
-    const bookTags = [...book.tags, ...(book.analysis?.ai_tags || [])];
-    const otherTags = [...other.tags, ...(other.analysis?.ai_tags || [])];
-    if (bookTags.some((t) => otherTags.includes(t))) {
+    if (book.tags.some((t) => other.tags.includes(t))) {
       related.add(other.id);
     }
   }
@@ -227,7 +189,7 @@ export function findRelatedBooks(book: BookWithAnalysis, allBooks: BookWithAnaly
   return allBooks.filter((b) => related.has(b.id));
 }
 
-export function getConnectedBooks(attributeId: string, books: BookWithAnalysis[]): BookWithAnalysis[] {
+export function getConnectedBooks(attributeId: string, books: Book[]): Book[] {
   const [type, ...nameParts] = attributeId.split(':');
   const name = nameParts.join(':');
 
@@ -236,14 +198,11 @@ export function getConnectedBooks(attributeId: string, books: BookWithAnalysis[]
       case 'author':
         return book.authors.includes(name);
       case 'topic':
-        return book.topics.includes(name) ||
-          (book.analysis?.ai_topics || []).includes(name);
+        return book.topics.includes(name);
       case 'theme':
-        return book.themes.includes(name) ||
-          (book.analysis?.ai_themes || []).includes(name);
+        return book.themes.includes(name);
       case 'tag':
-        return book.tags.includes(name) ||
-          (book.analysis?.ai_tags || []).includes(name);
+        return book.tags.includes(name);
       default:
         return false;
     }

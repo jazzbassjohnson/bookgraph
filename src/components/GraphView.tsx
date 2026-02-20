@@ -1,19 +1,18 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
-import type { BookWithAnalysis, BookConnection, BookSuggestion, GraphNode, GraphLink, EdgeToggles } from '../types';
+import type { Book, BookSuggestion, GraphNode, GraphLink, EdgeToggles } from '../types';
 import { buildGraphData } from '../graphBuilder';
 import { SidePanel } from './SidePanel';
 
 interface GraphViewProps {
-  books: BookWithAnalysis[];
-  connections: BookConnection[];
+  books: Book[];
   suggestions: BookSuggestion[];
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type GraphRef = any;
 
-export function GraphView({ books, connections, suggestions }: GraphViewProps) {
+export function GraphView({ books, suggestions }: GraphViewProps) {
   const graphRef = useRef<GraphRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
@@ -23,7 +22,6 @@ export function GraphView({ books, connections, suggestions }: GraphViewProps) {
     topic: true,
     theme: true,
     tag: true,
-    ai_connection: true,
   });
   const [threshold, setThreshold] = useState(1);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -54,8 +52,8 @@ export function GraphView({ books, connections, suggestions }: GraphViewProps) {
   }, [dimensions.width, selectedNode]);
 
   const graphData = useMemo(() => {
-    return buildGraphData(books, edgeToggles, threshold, connections, suggestions, showSuggestions);
-  }, [books, edgeToggles, threshold, connections, suggestions, showSuggestions]);
+    return buildGraphData(books, edgeToggles, threshold, suggestions, showSuggestions);
+  }, [books, edgeToggles, threshold, suggestions, showSuggestions]);
 
   const handleToggle = (type: keyof EdgeToggles) => {
     setEdgeToggles((prev) => ({
@@ -177,21 +175,9 @@ export function GraphView({ books, connections, suggestions }: GraphViewProps) {
           return 'rgba(236, 72, 153, 0.3)';
         case 'tag':
           return 'rgba(139, 92, 246, 0.3)';
-        case 'ai_connection':
-          return 'rgba(6, 182, 212, 0.4)';
         default:
           return 'rgba(255, 255, 255, 0.1)';
       }
-    },
-    []
-  );
-
-  const linkWidth = useCallback(
-    (link: GraphLink) => {
-      if (link.type === 'ai_connection' && link.strength) {
-        return 1 + link.strength * 3;
-      }
-      return 1;
     },
     []
   );
@@ -222,7 +208,6 @@ export function GraphView({ books, connections, suggestions }: GraphViewProps) {
             node.fy = node.y;
           }}
           linkColor={linkColor}
-          linkWidth={linkWidth}
           linkDirectionalParticles={0}
           backgroundColor="#0f172a"
           enableZoomInteraction={true}
@@ -283,18 +268,6 @@ export function GraphView({ books, connections, suggestions }: GraphViewProps) {
                 style={{ background: '#8b5cf6' }}
               ></span>
               Tags
-            </label>
-            <label className="toggle-item">
-              <input
-                type="checkbox"
-                checked={edgeToggles.ai_connection}
-                onChange={() => handleToggle('ai_connection')}
-              />
-              <span
-                className="color-dot"
-                style={{ background: '#06b6d4' }}
-              ></span>
-              AI Connections
             </label>
           </div>
 
@@ -368,13 +341,6 @@ export function GraphView({ books, connections, suggestions }: GraphViewProps) {
               ></span>
               Tag
             </div>
-            <div className="legend-item">
-              <span
-                className="color-dot"
-                style={{ background: '#06b6d4', width: 8, height: 8 }}
-              ></span>
-              AI Connection
-            </div>
           </div>
         </div>
       </div>
@@ -383,7 +349,6 @@ export function GraphView({ books, connections, suggestions }: GraphViewProps) {
         <SidePanel
           node={selectedNode}
           books={books}
-          connections={connections}
           suggestions={suggestions}
           onClose={() => {
             setSelectedNode(null);
